@@ -5,58 +5,101 @@
 //#include <esp.mac.h>
 
 // Store the last touch state for debouncing
-bool lastTouchState[5][5] = {false};
-
-// Define the touch matrix with corresponding sound file numbers
-int touchmatrix[5][5] = { { 1, 6, 11, 16, 21 },
-                          { 2, 7, 12, 17, 22 },
-                          { 3, 8, 13, 18, 23 },
-                          { 4, 9, 14, 19, 24 },
-                          { 5, 10, 15, 20, 25 } };
+volatile boolean lastTouchState[5][5] = {false};
+volatile boolean isTouched = false;
+volatile boolean _touchDetected = false;
+int soundFileNumber = 0;
+int volume = DEFAULTVOLUME;
 
 // DFPlayer setup
 SoftwareSerial mySoftwareSerial(16, 17); // RX, TX
 DFPlayerMini_Fast myDFPlayer;
 
-// Function to handle the touch interrupt
-void IRAM_ATTR onTouchDetected() {
-    // Read each row
+
+// Function to determine which pad was touched
+int getTouchPin() {
+
+    // Check each row
     for (int row = 0; row < 5; row++) {
-        int rowVal = touchRead(ROW1 + row);
+        int rowVal = touchRead(touchRow[row]);
 
-        // Read each column
-        for (int col = 0; col < 5; col++) {
-            int colVal = touchRead(COL1 + col);
+        // If a touch is detected on the row
+        if (rowVal < THRESHOLD) {
+            // Check each column
+            for (int col = 0; col < 5; col++) {
+                int colVal = touchRead(touchCol[col]);
 
-            // Check if the touch value is below the threshold
-            bool isTouched = (rowVal < THRESHOLD) && (colVal < THRESHOLD);
+                // If a touch is detected on the column
+                if (colVal < THRESHOLD) {
+                    // Check if the touch is a new touch (finger was previously lifted)
+                    if (!lastTouchState[row][col]) {
+                        Serial.print("Touch detected at: ");
+                        Serial.print("Row ");
+                        Serial.print(row+1);
+                        Serial.print(", Col ");
+                        Serial.println(col+1);
 
-            if (isTouched && !lastTouchState[row][col]) {
-                Serial.print("Touch detected at: ");
-                Serial.print("Row ");
-                Serial.print(row + 1);
-                Serial.print(", Col ");
-                Serial.println(col + 1);
+                        // Update the last touch state to indicate it's now being touched
+                        lastTouchState[row][col] = true;
 
-                // Play the corresponding sound file
-                int soundFileNumber = touchmatrix[row][col];
-                myDFPlayer.playFromMP3Folder(soundFileNumber);
-
-                // Update the last touch state
-                lastTouchState[row][col] = true;
-            } else if (!isTouched) {
-                // Reset touch state when touch is lifted
+                        // Return the corresponding sound file number from the touch matrix
+                        Serial.print("Pin detected ");
+                        Serial.println(soundmatrix[row][col]);
+                        return soundmatrix[row][col];
+                    }
+                } else {
+                    // If the pad is no longer being touched, reset the state
+                    lastTouchState[row][col] = false;
+                }
+            }
+        } else {
+            // If no touch is detected on this row, reset the states for all columns in this row
+            for (int col = 0; col < 5; col++) {
                 lastTouchState[row][col] = false;
             }
         }
     }
+    // Return -1 if no new touch was detected
+    return -1;
 }
+
+void setVolume(int volume){
+    myDFPlayer.volume(volume);
+}
+
+void touchDetected(){
+  //_touchDetected = true;  
+
+        int soundFileNumber = getTouchPin();
+        if (soundFileNumber == 24) {
+            if (volume <= 28)
+            volume = volume +2;
+            setVolume(volume);
+            Serial.print("Current Volume: ");
+            Serial.println(volume);
+        }
+        else if (soundFileNumber == 25) {
+            if (volume >= 2)
+            volume = volume -2;
+            setVolume(volume);
+            Serial.print("Current Volume: ");
+            Serial.println(volume);
+        }
+
+        else if (soundFileNumber != -1 && soundFileNumber < 24 && !myDFPlayer.isPlaying()) {
+            Serial.print("Playing MP3 number: ");
+            Serial.println(soundFileNumber);
+            myDFPlayer.playFromMP3Folder(soundFileNumber);
+        }
+    }
+
+
 
 void setup() {
 
     // Set GPIO0 as INPUT to avoid bootstrap issues
     pinMode(0, INPUT_PULLDOWN);
-    Serial.begin(115200);
+    Serial.begin(9600);
 
     // Initialize the DFPlayer
     mySoftwareSerial.begin(9600);
@@ -64,22 +107,47 @@ void setup() {
         Serial.println("DFPlayer Mini not detected!");
         while (true);
     }
-    myDFPlayer.volume(10);  // Set volume level (0 to 30)
+    myDFPlayer.volume(volume);  // Set volume level (0 to 30)
 
     // Attach interrupts to the touch pins
-    touchAttachInterrupt(ROW1, onTouchDetected, THRESHOLD);
-    touchAttachInterrupt(ROW2, onTouchDetected, THRESHOLD);
-    touchAttachInterrupt(ROW3, onTouchDetected, THRESHOLD);
-    touchAttachInterrupt(ROW4, onTouchDetected, THRESHOLD);
-    touchAttachInterrupt(ROW5, onTouchDetected, THRESHOLD);
+    touchAttachInterrupt(ROW1, touchDetected, THRESHOLD);
+    touchAttachInterrupt(ROW2, touchDetected, THRESHOLD);
+    touchAttachInterrupt(ROW3, touchDetected, THRESHOLD);
+    touchAttachInterrupt(ROW4, touchDetected, THRESHOLD);
+    touchAttachInterrupt(ROW5, touchDetected, THRESHOLD);
 
-    touchAttachInterrupt(COL1, onTouchDetected, THRESHOLD);
-    touchAttachInterrupt(COL2, onTouchDetected, THRESHOLD);
-    touchAttachInterrupt(COL3, onTouchDetected, THRESHOLD);
-    touchAttachInterrupt(COL4, onTouchDetected, THRESHOLD);
-    touchAttachInterrupt(COL5, onTouchDetected, THRESHOLD);
+    touchAttachInterrupt(COL1, touchDetected, THRESHOLD);
+    touchAttachInterrupt(COL2, touchDetected, THRESHOLD);
+    touchAttachInterrupt(COL3, touchDetected, THRESHOLD);
+    touchAttachInterrupt(COL4, touchDetected, THRESHOLD);
+    touchAttachInterrupt(COL5, touchDetected, THRESHOLD);
 }
 
+
 void loop() {
-    // Nothing needed here as everything is handled by the interrupt
+    // Deprecated loop since we handle everything via the interrupt callback function
+
+    // if (_touchDetected) {
+    //     int soundFileNumber = getTouchPin();
+    //     if (soundFileNumber == 24) {
+    //         if (volume <= 28)
+    //         volume = volume +2;
+    //         setVolume(volume);
+    //         Serial.print("Current Volume: ");
+    //         Serial.println(volume);
+    //     }
+    //     else if (soundFileNumber == 25) {
+    //         if (volume >= 2)
+    //         volume = volume -2;
+    //         setVolume(volume);
+    //         Serial.print("Current Volume: ");
+    //         Serial.println(volume);
+    //     }
+
+    //     else if (soundFileNumber != -1 && soundFileNumber < 24 && !myDFPlayer.isPlaying()) {
+    //         myDFPlayer.playFromMP3Folder(soundFileNumber);
+    //     }
+    //     _touchDetected = false; // reset flag as we handled the touch event
+    // }
+    //delay(DELAY);
 }
