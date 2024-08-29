@@ -34,15 +34,15 @@ int getTouchPin() {
                     // Check if the touch is a new touch (finger was previously lifted)
                     if (!lastTouchState[row][col]) {                        
                         lastTouchState[row][col] = true;                // Update the last touch state to indicate it's now being touched                                            
-                        if (SERIAL_MONITOR_ENABLED) {
-                            Serial.print("Touch detected at: ");
-                            Serial.print("Row ");
-                            Serial.print(row+1);
-                            Serial.print(", Col ");
-                            Serial.println(col+1);
-                            Serial.print("Pin detected ");
-                            Serial.println(soundmatrix[row][col]);
-                        }
+                        //if (SERIAL_MONITOR_ENABLED) {
+                            DEBUG_SERIAL.print("Touch detected at: ");
+                            DEBUG_SERIAL.print("Row ");
+                            DEBUG_SERIAL.print(row+1);
+                            DEBUG_SERIAL.print(", Col ");
+                            DEBUG_SERIAL.println(col+1);
+                            DEBUG_SERIAL.print("Pin detected ");
+                            DEBUG_SERIAL.println(soundmatrix[row][col]);
+                       // }
                     return soundmatrix[row][col];                   // Return the corresponding sound file number from the touch matrix
                     }
                 } else {
@@ -73,26 +73,26 @@ void touchDetected(){
             if (volume <= 27)
             volume = volume +3;
             setVolume(volume);
-            if (SERIAL_MONITOR_ENABLED) {
-                Serial.print("Current Volume: ");
-                Serial.println(volume);
-            }
+            //if (SERIAL_MONITOR_ENABLED) {
+                DEBUG_SERIAL.print("Current Volume: ");
+                DEBUG_SERIAL.println(volume);
+            //}
         }
         else if (soundFileNumber == 25) {
             if (volume >= 3)
             volume = volume -3;
             setVolume(volume);
-            if (SERIAL_MONITOR_ENABLED) {
-                Serial.print("Current Volume: ");
-                Serial.println(volume);
-            }
+            //if (SERIAL_MONITOR_ENABLED) {
+                DEBUG_SERIAL.print("Current Volume: ");
+                DEBUG_SERIAL.println(volume);
+            //}
         }
 
         else if (soundFileNumber != -1 && soundFileNumber < 24 && !myDFPlayer.isPlaying()) {
-            if (SERIAL_MONITOR_ENABLED) {
-                Serial.print("Playing MP3 number: ");
-                Serial.println(soundFileNumber);
-            }
+            //if (SERIAL_MONITOR_ENABLED) {
+                DEBUG_SERIAL.print("Playing MP3 number: ");
+                DEBUG_SERIAL.println(soundFileNumber);
+            //}
             myDFPlayer.playFromMP3Folder(soundFileNumber);
         }
     }
@@ -100,9 +100,9 @@ void touchDetected(){
 
 
 void setup() {
-    if (SERIAL_MONITOR_ENABLED) {
+    #if DEBUG == true
         Serial.begin(9600);
-    }
+    #endif
 
     // Initialize the DFPlayer
     mySoftwareSerial.begin(9600);

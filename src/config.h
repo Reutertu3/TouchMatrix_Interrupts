@@ -4,7 +4,8 @@
 #define THRESHOLD 25        // Define a threshold for detecting touch
 #define DEFAULTVOLUME 9    // Set volume on boot for the DFPlayer
 #define DELAY 3500            // Delay before attaching interrupt pins
-#define SERIAL_MONITOR_ENABLED true    //Enable or disable serial monitor
+#define DEBUG true  //set to true for debug output, false for no debug output
+#define DEBUG_SERIAL if(DEBUG)Serial
 
 // Mapping pins for Rows and Columns of the Touch Matrix (start counting from top right)
 #define ROW1 4      // T0
