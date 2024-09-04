@@ -10,6 +10,7 @@ volatile boolean isTouched = false;
 volatile boolean _touchDetected = false;
 int soundFileNumber = 0;
 int volume = DEFAULTVOLUME;
+int touchThreshold = THRESHOLD-10;
 
 // DFPlayer setup
 SoftwareSerial mySoftwareSerial(16, 17); // RX, TX
@@ -69,7 +70,14 @@ void touchDetected(){
   //_touchDetected = true;  
 
         int soundFileNumber = getTouchPin();
-        if (soundFileNumber == 24) {
+        if (soundFileNumber != -1 && soundFileNumber < 24 && !myDFPlayer.isPlaying()) {
+            //if (SERIAL_MONITOR_ENABLED) {
+                DEBUG_SERIAL.print("Playing MP3 number: ");
+                DEBUG_SERIAL.println(soundFileNumber);
+            //}
+            myDFPlayer.playFromMP3Folder(soundFileNumber);
+        }
+        else if (soundFileNumber == 24) {
             if (volume <= 27)
             volume = volume +3;
             setVolume(volume);
@@ -87,15 +95,7 @@ void touchDetected(){
                 DEBUG_SERIAL.println(volume);
             //}
         }
-
-        else if (soundFileNumber != -1 && soundFileNumber < 24 && !myDFPlayer.isPlaying()) {
-            //if (SERIAL_MONITOR_ENABLED) {
-                DEBUG_SERIAL.print("Playing MP3 number: ");
-                DEBUG_SERIAL.println(soundFileNumber);
-            //}
-            myDFPlayer.playFromMP3Folder(soundFileNumber);
-        }
-    }
+}
 
 
 
@@ -110,22 +110,22 @@ void setup() {
         Serial.println("DFPlayer Mini not detected!");
         while (true);
     }
-    myDFPlayer.volume(volume);  // Set volume level (0 to 30)
     delay(DELAY);
     // Set GPIO0 as INPUT to avoid bootstrap issues
+    setVolume(volume);  // Set volume level (0 to 30)
     pinMode(0, INPUT_PULLDOWN);
     // Attach interrupts to the touch pins
-    touchAttachInterrupt(ROW1, touchDetected, THRESHOLD);
-    touchAttachInterrupt(ROW2, touchDetected, THRESHOLD);
-    touchAttachInterrupt(ROW3, touchDetected, THRESHOLD);
-    touchAttachInterrupt(ROW4, touchDetected, THRESHOLD);
-    touchAttachInterrupt(ROW5, touchDetected, THRESHOLD);
+    touchAttachInterrupt(ROW1, touchDetected, touchThreshold);
+    touchAttachInterrupt(ROW2, touchDetected, touchThreshold);
+    touchAttachInterrupt(ROW3, touchDetected, touchThreshold);
+    touchAttachInterrupt(ROW4, touchDetected, touchThreshold);
+    touchAttachInterrupt(ROW5, touchDetected, touchThreshold);
 
-    touchAttachInterrupt(COL1, touchDetected, THRESHOLD);
-    touchAttachInterrupt(COL2, touchDetected, THRESHOLD);
-    touchAttachInterrupt(COL3, touchDetected, THRESHOLD);
-    touchAttachInterrupt(COL4, touchDetected, THRESHOLD);
-    touchAttachInterrupt(COL5, touchDetected, THRESHOLD);
+    touchAttachInterrupt(COL1, touchDetected, touchThreshold);
+    touchAttachInterrupt(COL2, touchDetected, touchThreshold);
+    touchAttachInterrupt(COL3, touchDetected, touchThreshold);
+    touchAttachInterrupt(COL4, touchDetected, touchThreshold);
+    touchAttachInterrupt(COL5, touchDetected, touchThreshold);
 }
 
 
@@ -155,4 +155,8 @@ void loop() {
     //     _touchDetected = false; // reset flag as we handled the touch event
     // }
     //delay(DELAY);
+    DEBUG_SERIAL.print("Touch Read Pin 4: ");
+    DEBUG_SERIAL.println(touchRead(4));
+    delay(75);
+
 }
