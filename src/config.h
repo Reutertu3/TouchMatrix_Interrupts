@@ -1,8 +1,11 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#define THRESHOLD 32        // Define a threshold for detecting touch
-#define DEFAULTVOLUME 15    // Set volume on boot for the DFPlayer
+#define THRESHOLD 32        // Define a threshold for detecting touch. **Deprecated**
+// THREDHOLDDELTA is used to determine a trigger value based on selfCalibrate(). The lower the value, 
+//the more sensitive a touch pin is i.e. to detect a touch through a sheet of paper
+#define THREDHOLDDELTA 5   
+#define DEFAULTVOLUME 18    // Set volume on boot for the DFPlayer. 0-30 in steps of 3
 #define DELAY 1500            // Delay before attaching interrupt pins
 #define DEBUG true  //set to true for debug output, false for no debug output
 #define DEBUG_SERIAL if(DEBUG)Serial
