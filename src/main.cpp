@@ -10,7 +10,7 @@ volatile boolean isTouched = false;
 volatile boolean _touchDetected = false;
 int soundFileNumber = 0;
 int volume = DEFAULTVOLUME;
-int touchThreshold = THRESHOLD-10;
+//int touchThreshold = THRESHOLD-10;
 // Define arrays to store the calibration values (idle readings)
 int rowThresholds[5];
 int colThresholds[5];
@@ -19,7 +19,26 @@ int colThresholds[5];
 SoftwareSerial mySoftwareSerial(16, 17); // RX, TX
 DFPlayerMini_Fast myDFPlayer;
 
+void logOutput(int row, int col, int colVal, int rowVal){
 
+    cli();
+    Serial.print("Touch detected at: ");
+    Serial.print("Row ");
+    Serial.print(row+1);
+    Serial.print(", Col ");
+    Serial.println(col+1);
+    Serial.print("Pin detected ");
+    Serial.println(soundmatrix[row][col]);
+    Serial.println("Calib measures row col: ");
+    Serial.print(rowThresholds[row]);
+    Serial.print(" / ");
+    Serial.println(colThresholds[col]);
+    Serial.println("Current measures row col: ");
+    Serial.print(rowVal);
+    Serial.print(" / ");
+    Serial.println(colVal);
+    sei();
+}
 // Function to determine which pad was touched
 int getTouchPin() {
 
@@ -38,15 +57,9 @@ int getTouchPin() {
                     // Check if the touch is a new touch (finger was previously lifted)
                     if (!lastTouchState[row][col]) {                        
                         lastTouchState[row][col] = true;                // Update the last touch state to indicate it's now being touched                                            
-                        //if (SERIAL_MONITOR_ENABLED) {
-                            DEBUG_SERIAL.print("Touch detected at: ");
-                            DEBUG_SERIAL.print("Row ");
-                            DEBUG_SERIAL.print(row+1);
-                            DEBUG_SERIAL.print(", Col ");
-                            DEBUG_SERIAL.println(col+1);
-                            DEBUG_SERIAL.print("Pin detected ");
-                            DEBUG_SERIAL.println(soundmatrix[row][col]);
-                       // }
+                        if (DEBUG) {
+                            logOutput(row, col, rowVal, colVal);
+                        }
                     return soundmatrix[row][col];                   // Return the corresponding sound file number from the touch matrix
                     }
                 } else {
@@ -70,33 +83,26 @@ void setVolume(int volume){
 }
 
 void touchDetected(){
-  //_touchDetected = true;  
 
         int soundFileNumber = getTouchPin();
         if (soundFileNumber != -1 && soundFileNumber < 24 && !myDFPlayer.isPlaying()) {
-            //if (SERIAL_MONITOR_ENABLED) {
-                DEBUG_SERIAL.print("Playing MP3 number: ");
-                DEBUG_SERIAL.println(soundFileNumber);
-            //}
+            DEBUG_SERIAL.print("Playing MP3 number: ");
+            DEBUG_SERIAL.println(soundFileNumber);
             myDFPlayer.playFromMP3Folder(soundFileNumber);
         }
         else if (soundFileNumber == 24) {
             if (volume <= 27)
             volume = volume +3;
             setVolume(volume);
-            //if (SERIAL_MONITOR_ENABLED) {
-                DEBUG_SERIAL.print("Current Volume: ");
-                DEBUG_SERIAL.println(volume);
-            //}
+            DEBUG_SERIAL.print("Current Volume: ");
+            DEBUG_SERIAL.println(volume);
         }
         else if (soundFileNumber == 25) {
             if (volume >= 3)
             volume = volume -3;
             setVolume(volume);
-            //if (SERIAL_MONITOR_ENABLED) {
-                DEBUG_SERIAL.print("Current Volume: ");
-                DEBUG_SERIAL.println(volume);
-            //}
+            DEBUG_SERIAL.print("Current Volume: ");
+            DEBUG_SERIAL.println(volume);
         }
 }
 
@@ -117,7 +123,7 @@ void selfCalibrate() {
 }
 
 void outputCalibrateValues(){
-      // Print calibration values for debugging
+// Print calibration values for debugging
   DEBUG_SERIAL.println("Row Thresholds:");
   for (int i = 0; i < 5; i++) {
     DEBUG_SERIAL.print("Row ");
@@ -137,7 +143,7 @@ void outputCalibrateValues(){
 
 void attachTouchInterrupts(){
     touchAttachInterrupt(ROW1, touchDetected, rowThresholds[0] - THREDHOLDDELTA);
-    touchAttachInterrupt(ROW2, touchDetected, rowThresholds[1] - THREDHOLDDELTA);
+    touchAttachInterrupt(ROW2, touchDetected, rowThresholds[1] - THREDHOLDDELTA - 4); // Special treatment for GPIO0
     touchAttachInterrupt(ROW3, touchDetected, rowThresholds[2] - THREDHOLDDELTA);
     touchAttachInterrupt(ROW4, touchDetected, rowThresholds[3] - THREDHOLDDELTA);
     touchAttachInterrupt(ROW5, touchDetected, rowThresholds[4] - THREDHOLDDELTA);
@@ -153,9 +159,12 @@ void attachTouchInterrupts(){
 
 void setup() {
     #if DEBUG == true
-        Serial.begin(9600);
+        Serial.setTxBufferSize(SERIAL_TX_BUFFER_SIZE);
+        Serial.begin(115200);
     #endif
-
+    // Set GPIO0 as INPUT to avoid bootstrap issues
+    pinMode(0, INPUT_PULLDOWN);
+    touchSetCycles(TOUCHCYCLES, TOUCHCYCLES);
     // Initialize the DFPlayer
     mySoftwareSerial.begin(9600);
     if (!myDFPlayer.begin(mySoftwareSerial)) {
@@ -163,34 +172,17 @@ void setup() {
         while (true);
     }
     delay(DELAY);
-    // Set GPIO0 as INPUT to avoid bootstrap issues
+
     setVolume(volume);  // Set volume level (0 to 30)
-    pinMode(0, INPUT_PULLDOWN);
     selfCalibrate();
     if (DEBUG){
         outputCalibrateValues();
     }
     delay(DELAY);
     attachTouchInterrupts();
-    // Attach interrupts to the touch pins
-    // touchAttachInterrupt(ROW1, touchDetected, touchThreshold);
-    // touchAttachInterrupt(ROW2, touchDetected, touchThreshold);
-    // touchAttachInterrupt(ROW3, touchDetected, touchThreshold);
-    // touchAttachInterrupt(ROW4, touchDetected, touchThreshold);
-    // touchAttachInterrupt(ROW5, touchDetected, touchThreshold);
-
-    // touchAttachInterrupt(COL1, touchDetected, touchThreshold);
-    // touchAttachInterrupt(COL2, touchDetected, touchThreshold);
-    // touchAttachInterrupt(COL3, touchDetected, touchThreshold);
-    // touchAttachInterrupt(COL4, touchDetected, touchThreshold);
-    // touchAttachInterrupt(COL5, touchDetected, touchThreshold);
 }
 
 
 void loop() {
-    
-    // DEBUG_SERIAL.print("Touch Read Pin 4: ");
-    // DEBUG_SERIAL.println(touchRead(4));
-    // delay(75);
 
 }
