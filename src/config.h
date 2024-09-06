@@ -9,7 +9,7 @@
 #define DEFAULTVOLUME 18    // Set volume on boot for the DFPlayer. 0-30 in steps of 3
 #define DELAY 550            // Delay before attaching interrupt pins
 #define TOUCHCYCLES 8192      //Sets touchSetCycles() to a value (default = 0x1000). Touch sensing accuracy is depending on said value (the higher, the better)
-#define DEBUG false  //set8 to true for debug output, false for no debug output
+#define DEBUG true  //set8 to true for debug output, false for no debug output
 #define SERIAL_TX_BUFFER_SIZE  1024
 #define DEBUG_SERIAL if(DEBUG)Serial
 
